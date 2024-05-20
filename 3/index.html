@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guestbook</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script>
+        async function fetchEntries() {
+            try {
+                const response = await fetch('https://d5dhr0sf0l0fjstd5fvp.apigw.yandexcloud.net/api/entries');
+                const entries = await response.json();
+                const entriesContainer = document.getElementById('entries');
+                entriesContainer.innerHTML = '';
+                entries.forEach(entry => {
+                    const entryElement = document.createElement('div');
+                    entryElement.innerHTML = `<p><strong>${entry.name}</strong>: ${entry.message}</p>`;
+                    entriesContainer.appendChild(entryElement);
+                });
+            } catch (error) {
+                console.error('Error fetching entries:', error);
+            }
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            console.log(JSON.stringify(data));
+
+            try {
+                const response = await fetch("https://d5dhr0sf0l0fjstd5fvp.apigw.yandexcloud.net/api/sign", {
+                    method: "POST",
+                    mode: "cors",
+                    cache: "no-cache",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        'Accept': 'application/json'
+                    },
+                    redirect: "follow",
+                    referrerPolicy: "no-referrer",
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message);
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(`Ошибка: ${error.message}`);
+                }
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('guestbook-form');
+            form.addEventListener('submit', submitForm);
+        });
+
+        async function fetchInstanceName() {
+            try {
+                const response = await fetch('https://d5dhr0sf0l0fjstd5fvp.apigw.yandexcloud.net/api/instance');
+                const data = await response.json();
+                const instanceNameContainer = document.getElementById('instance-name');
+                instanceNameContainer.textContent = `Instance Name: ${data.instance_name}`;
+            } catch (error) {
+                console.error('Error fetching instance name:', error);
+            }
+        }
+		
+		async function fetchBackendVersion() {
+            try {
+                const response = await fetch('https://d5dhr0sf0l0fjstd5fvp.apigw.yandexcloud.net/api/back_version');
+                const data = await response.json();
+                const backendVersionContainer = document.getElementById('backend_version');
+                backendVersionContainer.textContent = `${data.version}`;
+            } catch (error) {
+                console.error('Error fetching backend version:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchEntries();
+            fetchInstanceName();
+			fetchBackendVersion();
+        });
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>Guestbook</h1>
+    <p>Frontend version: <label>1.1</label></p>
+    <p>Backend version: <label id="backend_version">1.0</label></p>
+    <p id="instance-name">Instance name:</p>
+    <form id="guestbook-form">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" class="form-control" name="name" id="name" required>
+        </div>
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea class="form-control" name="message" id="message" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Sign</button>
+    </form>
+    <h2>Messages</h2>
+    <div id="entries" class="container"></div>
+</div>
+</body>
+</html>

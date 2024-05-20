@@ -1,0 +1,25 @@
+#cloud-config
+users:
+- name: inna-anikina
+  groups: sudo
+  sudo: 'ALL=(ALL) NOPASSWD:ALL'
+  shell: /bin/bash
+  ssh_authorized_keys:
+  - ${ssh_key}
+runcmd:
+  - su - inna-anikina
+  - apt-get update
+  - apt-get install -y python3-pip
+  - pip3 install flask ydb[yc] python-dotenv flask-cors
+  - mkdir /home/inna-anikina/guestbook
+  - git clone https://github.com/innaanikina/guestbook.git /home/inna-anikina/guestbook
+  - apt-get install -y awscli
+  - pip3 install --upgrade awscli botocore urllib3
+  - aws configure set default.region ${zone}
+  - AWS_ACCESS_KEY_ID=${aws_access_key} AWS_SECRET_ACCESS_KEY=${aws_secret_key}  aws s3 cp s3://guestbook-01-data /home/inna-anikina/guestbook --recursive --endpoint-url=https://storage.yandexcloud.net
+  - sudo chown -R inna-anikina:inna-anikina /home/inna-anikina/guestbook
+  - sudo chmod -R u+rwx /home/inna-anikina/guestbook
+  - nohup python3 /home/inna-anikina/guestbook/app.py > /dev/null 2>&1 &
+  - echo $! > /home/inna-anikina/guestbook/app.pid
+  - echo "Finished cloud-init"
+
